@@ -18,7 +18,7 @@ fn decode_cptv1_file() -> io::Result<()> {
     let mut num_frames = 0;
     loop {
         let frame = decoder.next_frame();
-        if let Ok(frame) = frame {
+        if let Ok(_frame) = frame {
             num_frames += 1;
         } else {
             break;

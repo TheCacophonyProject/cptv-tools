@@ -49,7 +49,7 @@ const FakeReader = function (bytes, maxChunkSize = 0) {
     const start = performance.now();
     // TODO: Handle stream cancellation
     const decoderContext = CptvDecoderContext.newWithReadableStream(reader);
-    const header = await decoderContext.getHeader();
+    const _header = await decoderContext.getHeader();
     let frame;
     let num = 0;
     while (frame = await decoderContext.nextFrameOwned() && frame !== null) {
