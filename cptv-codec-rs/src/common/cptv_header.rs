@@ -67,6 +67,7 @@ impl CptvString {
 #[cfg_attr(feature = "std", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct CptvHeader {
+    pub version: u8,
     pub timestamp: u64,
     pub width: u32,
     pub height: u32,
@@ -108,6 +109,7 @@ pub struct CptvHeader {
 impl Default for CptvHeader {
     fn default() -> Self {
         CptvHeader {
+            version: 0,
             timestamp: 0,
             width: WIDTH as u32,
             height: HEIGHT as u32,
@@ -141,6 +143,7 @@ impl CptvHeader {
         match version {
             1 | 2 => {
                 let mut meta = CptvHeader::default();
+                meta.version = version;
                 let (i, val) = take(1usize)(i)?;
                 let (_, _) = char('H')(val)?;
                 let (i, num_header_fields) = le_u8(i)?;

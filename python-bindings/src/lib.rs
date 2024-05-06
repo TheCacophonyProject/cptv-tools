@@ -1,10 +1,11 @@
 use std::fs::File;
 use std::path::Path;
 
-use codec::decode::CptvDecoder;
 use numpy::ndarray::Array;
 use numpy::{IntoPyArray, PyArray2, PyArrayMethods};
 use pyo3::prelude::*;
+
+use codec::decode::CptvDecoder;
 
 #[pyclass]
 struct CptvReader {
@@ -87,7 +88,7 @@ impl CptvReader {
     pub fn get_header(&mut self) -> Option<CptvHeader> {
         if let Ok(header) = self.inner.get_header() {
             Some(CptvHeader {
-                version: 2,
+                version: header.version,
                 device_name: header.device_name.as_string(),
                 device_id: header.device_id.unwrap(),
                 timestamp: header.timestamp,
