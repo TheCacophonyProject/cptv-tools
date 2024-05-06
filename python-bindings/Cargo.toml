@@ -1,0 +1,14 @@
+[package]
+name = "cptv-rs-python-bindings"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "cptv_rs_python_bindings"
+crate-type = ["cdylib"]
+
+[dependencies]
+codec = { path = "../cptv-codec-rs" }
+pyo3 = { version = "0.21.2", features = ["extension-module"] }
+numpy = "0.21.0"

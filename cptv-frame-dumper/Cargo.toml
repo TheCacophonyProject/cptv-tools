@@ -1,0 +1,12 @@
+[package]
+name = "dump-cptv-frames"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codec = { path = "../cptv-codec-rs" }
+argh = "0.1.12"
+colorous = "1.0.10"
+image = { version = "0.25.1", features = ["png"] }

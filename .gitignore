@@ -1,0 +1,4 @@
+/target
+/cptv-frame-dumper/output/*.png
+/.idea
+/python-bindings/examples/*.so

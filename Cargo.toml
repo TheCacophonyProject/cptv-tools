@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "cptv-codec-rs", "cptv-downloader", "cptv-transcoder", "cptv-frame-dumper", "native-player",
+    "python-bindings",
+    "wasm-bindings"
+]
+resolver = "2"
