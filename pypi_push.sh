@@ -1,4 +1,4 @@
 #!/bin/bash
-set -xe
+set -x
 cd python-bindings
 maturin publish
