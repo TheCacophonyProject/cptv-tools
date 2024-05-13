@@ -1,0 +1,22 @@
+dist: focal
+language: python
+services:
+  - docker
+python:
+- '3.9'
+install:
+- curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+- python -m pip install --upgrade pip
+- pip install maturin
+- cd python-bindings
+- ./build.sh
+before_deploy:
+- python3 -m pip install --upgrade build
+- echo $'[pypi]\nusername = __token__\npassword = '$PYPI_TOKEN > ~/.pypirc
+deploy:
+  - provider: script
+    script:  bash ./pypi_push.sh
+    on:
+      repo: TheCacophonyProject/cptv-tools
+      tags: true
+    skip_cleanup: 'true'
