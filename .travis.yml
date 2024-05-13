@@ -7,7 +7,7 @@ language: python
 services:
   - docker
 python:
-- '3.9'
+- '3.10'
 install:
 - python -m pip install --upgrade pip
 - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile=minimal -y
@@ -18,7 +18,6 @@ install:
 - pip install -r requirements.txt
 script:
 - ./build.sh
-
 before_deploy:
 - python3 -m pip install --upgrade build
 - pip install maturin
