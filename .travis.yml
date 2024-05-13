@@ -1,4 +1,8 @@
 dist: focal
+
+arch: 
+  - amd64
+  - arm64
 language: python
 services:
   - docker
@@ -21,7 +25,7 @@ before_deploy:
 - echo $'[pypi]\nusername = __token__\npassword = '$PYPI_TOKEN > ~/.pypirc
 deploy:
   - provider: script
-    script:  bash ./pypi_push.sh
+    script:  maturin publish
     on:
       repo: TheCacophonyProject/cptv-tools
       tags: true
