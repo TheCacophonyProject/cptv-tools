@@ -5,17 +5,19 @@ services:
 python:
 - '3.9'
 install:
+- python -m pip install --upgrade pip
 - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile=minimal -y
 - export PATH=${TRAVIS_HOME}/.cargo/bin:$PATH
 - rustup update
 - python -m pip install --upgrade pip
-- pip install maturin
-script:
 - cd python-bindings
+- pip install -r requirements.txt
+script:
 - ./build.sh
 
 before_deploy:
 - python3 -m pip install --upgrade build
+- pip install maturin
 - echo $'[pypi]\nusername = __token__\npassword = '$PYPI_TOKEN > ~/.pypirc
 deploy:
   - provider: script
