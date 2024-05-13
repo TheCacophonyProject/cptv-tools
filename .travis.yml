@@ -7,7 +7,7 @@ services:
   - docker
 python:
 - '3.10'
-- '3,11'
+- '3.11'
 
 install:
 - python -m pip install --upgrade pip
