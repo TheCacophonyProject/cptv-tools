@@ -5,3 +5,19 @@ build-backend = "maturin"
 [tool.maturin]
 # "extension-module" tells pyo3 we want to build an extension module (skips linking against libpython.so)
 features = ["pyo3/extension-module"]
+
+[project]
+name = "python-cptv"
+version = "0.0.2"
+authors = [
+  { name="Jon Hardie", email="Jon@cacophony.org.nz" },
+  { name = "Giampaolo Feraro", email = "Giampaolo@Cacophony.org.nz"}
+]
+description = "This is Python package provides for quick parsing Cacophony Project Thermal Video (CPTV) files. "
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
