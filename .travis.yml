@@ -1,7 +1,6 @@
 dist: focal
 arch: 
   - amd64
-  - arm64
 language: python
 services:
   - docker
