@@ -119,13 +119,13 @@ impl CptvReader {
     pub fn next_frame<'py>(&mut self, py: Python<'py>) -> Option<CptvFrame> {
         if let Ok(frame_ref) = self.inner.next_frame() {
             let chunk =
-                Array::from_shape_vec((160, 120), frame_ref.image_data.data().to_vec()).unwrap();
+                Array::from_shape_vec((120, 160), frame_ref.image_data.data().to_vec()).unwrap();
             Some(CptvFrame {
                 time_on: frame_ref.time_on,
                 last_ffc_time: frame_ref.last_ffc_time,
                 temp_c: frame_ref.frame_temp_c,
                 last_ffc_temp_c: frame_ref.last_ffc_temp_c,
-                background_frame: false,
+                background_frame: frame_ref.is_background_frame,
                 pix: Bound::unbind(chunk.into_pyarray_bound(py)),
             })
         } else {
