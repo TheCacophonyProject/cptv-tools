@@ -185,26 +185,31 @@ impl<R: Read> CptvDecoder<R> {
                         self.buffer.consume(used);
                         break;
                     }
-                    Err(e) => match e {
-                        nom::Err::Incomplete(need_more_bytes) => match need_more_bytes {
-                            Needed::Size(size) => {
-                                while self.buffer.len() <= initial_len + size.get() {
-                                    match self.read_into_buffer(&mut buffer) {
-                                        Ok(_) => (),
-                                        Err(e) => return Err(e),
+                    Err(e) => {
+                        match e {
+                            nom::Err::Incomplete(need_more_bytes) => match need_more_bytes {
+                                Needed::Size(size) => {
+                                    while self.buffer.len() < initial_len + size.get() {
+                                        match self.read_into_buffer(&mut buffer) {
+                                            Ok(_) => (),
+                                            Err(e) => return Err(e),
+                                        }
+                                        if self.buffer.len() == initial_len + size.get() {
+                                            continue;
+                                        }
                                     }
                                 }
-                            }
-                            Needed::Unknown => match self.read_into_buffer(&mut buffer) {
-                                Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Needed::Unknown => match self.read_into_buffer(&mut buffer) {
+                                    Ok(_) => (),
+                                    Err(e) => return Err(e),
+                                },
                             },
-                        },
-                        nom::Err::Failure(_e) | nom::Err::Error(_e) => {
-                            return Err(Error::new(
-                                ErrorKind::Other,
-                                "Unexpected input, CPTV file may be corrupt?",
-                            ));
+                            nom::Err::Failure(_e) | nom::Err::Error(_e) => {
+                                return Err(Error::new(
+                                    ErrorKind::Other,
+                                    "Unexpected input, CPTV file may be corrupt?",
+                                ));
+                            }
                         }
                     },
                 }

@@ -78,6 +78,11 @@ fn u8_slice_as_u16_slice(p: &[u8]) -> &[u16] {
     );
     unsafe { core::slice::from_raw_parts((p as *const [u8]) as *const u16, p.len() / 2) }
 }
+
+fn slice_is_16_bit_aligned(slice: &[u8]) -> bool {
+    ((slice as *const [u8]) as *const u16).is_aligned()
+}
+
 fn unpack_frame_v2(
     prev_frame: &CptvFrame,
     data: &[u8],
@@ -85,7 +90,9 @@ fn unpack_frame_v2(
     snake_sequence: &[usize],
 ) -> FrameData {
     let initial_px = LittleEndian::read_i32(&data[0..4]);
-    let i = &data[4..];
+    let num_px = (160 * 120) - 1;
+    let frame_size = ((num_px * bit_width as usize) as f32 / 8.0).ceil() as usize;
+    let i = &data[4..4 + frame_size];
     let mut current_px = initial_px;
 
     // Seed the initial pixel value
@@ -95,8 +102,7 @@ fn unpack_frame_v2(
     let mut image_data = FrameData::new();
     image_data[0][0] = (prev_px + current_px) as u16;
     let num_remaining_px = (WIDTH * HEIGHT) - 1;
-
-    if bit_width == 16 {
+    if bit_width == 16 && slice_is_16_bit_aligned(i) {
         for (&index, delta) in snake_sequence
             .iter()
             .zip(u8_slice_as_u16_slice(i).iter().take(num_remaining_px))
@@ -231,9 +237,10 @@ impl CptvFrame {
                 }
             }
         }
-
-        assert!(frame_size > 0);
+        //let frame_size = 4 + ((num_px * bit_width as usize) as f32 / 8.0).ceil() as usize;
         let (i, data) = take(frame_size as usize)(outer)?;
+        assert!(frame_size > 0);
+        assert!((frame_size as usize) <= outer.len());
         // Now try to decode frame data.
         let prev_frame = prev_frame.as_ref();
         let empty_frame;

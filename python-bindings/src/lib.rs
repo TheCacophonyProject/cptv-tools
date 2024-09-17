@@ -2,7 +2,7 @@ use std::fs::File;
 use std::path::Path;
 
 use numpy::ndarray::Array;
-use numpy::{IntoPyArray, PyArray2, PyArrayMethods};
+use numpy::{IntoPyArray, PyArray2};
 use pyo3::prelude::*;
 
 use codec::decode::CptvDecoder;
