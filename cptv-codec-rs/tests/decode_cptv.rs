@@ -135,6 +135,7 @@ fn decode_unusual_python_cptv_file() -> io::Result<()> {
     // and filled out most of that size with zeros.  It's technically a valid thing to do, and should
     // be handled.  Furthermore, it had 16 bit_width pixels on a frame, and these needed to be 16bit
     // aligned to be handled properly by the fast-path.
+
     let file = File::open(&Path::new("./tests/fixtures/20240917-1921337.cptv"))?;
     let decoder = CptvDecoder::from(file)?;
     let mut last_time_on = 0;
