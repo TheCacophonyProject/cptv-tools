@@ -90,7 +90,7 @@ impl CptvReader {
             Some(CptvHeader {
                 version: header.version,
                 device_name: header.device_name.as_string(),
-                device_id: header.device_id.unwrap(),
+                device_id: header.device_id.unwrap_or_default(),
                 timestamp: header.timestamp,
                 motion_config: header.motion_config.map(|s| s.as_string()),
                 x_resolution: header.width,
