@@ -3,7 +3,7 @@ import time
 
 start = time.time()
 cptv_reader = cptv_rs_python_bindings.CptvReader(
-    "/home/gp/cacophony/classifier-data/testclip.cptv"
+    "../../cptv-codec-rs/tests/fixtures/20201221-748923.cptv"
 )
 
 reader = cptv_reader.get_header()
