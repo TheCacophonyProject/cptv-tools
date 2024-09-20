@@ -78,6 +78,7 @@ fn u8_slice_as_u16_slice(p: &[u8]) -> &[u16] {
     );
     unsafe { core::slice::from_raw_parts((p as *const [u8]) as *const u16, p.len() / 2) }
 }
+
 fn unpack_frame_v2(
     prev_frame: &CptvFrame,
     data: &[u8],
@@ -85,33 +86,22 @@ fn unpack_frame_v2(
     snake_sequence: &[usize],
 ) -> FrameData {
     let initial_px = LittleEndian::read_i32(&data[0..4]);
-    let i = &data[4..];
+    let num_remaining_px = (WIDTH * HEIGHT) - 1;
+    let frame_size = ((num_remaining_px * bit_width as usize) as f32 / 8.0).ceil() as usize;
+    let i = &data[4..4 + frame_size];
     let mut current_px = initial_px;
-
     // Seed the initial pixel value
     let prev_px = prev_frame.image_data[0][0] as i32;
     assert!(prev_px + current_px <= u16::MAX as i32);
     assert!(prev_px + current_px >= 0);
     let mut image_data = FrameData::new();
     image_data[0][0] = (prev_px + current_px) as u16;
-    let num_remaining_px = (WIDTH * HEIGHT) - 1;
-
-    if bit_width == 16 {
-        for (&index, delta) in snake_sequence
-            .iter()
-            .zip(u8_slice_as_u16_slice(i).iter().take(num_remaining_px))
-        {
-            current_px += (*delta as i16) as i32;
-            let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
-            let px = (prev_px + current_px) as u16;
-            (*unsafe { image_data.data.get_unchecked_mut(index) }) = px;
-        }
-    } else if bit_width == 8 {
+    if bit_width == 8 {
         for (&index, delta) in snake_sequence.iter().zip(i.iter().take(num_remaining_px)) {
             current_px += (*delta as i8) as i32;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
             let px = (prev_px + current_px) as u16;
-            (*unsafe { image_data.data.get_unchecked_mut(index) }) = px;
+            *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
     } else {
         for (&index, delta) in snake_sequence
@@ -121,7 +111,7 @@ fn unpack_frame_v2(
             current_px += delta;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
             let px = (prev_px + current_px) as u16;
-            (*unsafe { image_data.data.get_unchecked_mut(index) }) = px;
+            *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
     }
     image_data
@@ -231,9 +221,9 @@ impl CptvFrame {
                 }
             }
         }
-
-        assert!(frame_size > 0);
         let (i, data) = take(frame_size as usize)(outer)?;
+        assert!(frame_size > 0);
+        assert!((frame_size as usize) <= outer.len());
         // Now try to decode frame data.
         let prev_frame = prev_frame.as_ref();
         let empty_frame;

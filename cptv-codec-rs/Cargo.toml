@@ -12,7 +12,7 @@ serde = { version = "1.0", features = ["derive"] }
 byteorder = "1.4.3"
 futures = "0.3.30"
 pollster = "0.3.0"
-flate2 = "1.0.28"
+flate2 = "1.0.33"
 double-buffer = "1.0.0"
 
 [features]
