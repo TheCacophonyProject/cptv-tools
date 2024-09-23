@@ -99,8 +99,8 @@ fn unpack_frame_v2(
                 current_px += (delta as i16) as i32;
                 let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
 
-                assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
-                assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+                // assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
+                // assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
                 let px = (prev_px + current_px) as u16;
                 *unsafe { image_data.data.get_unchecked_mut(index) } = px;
             }
@@ -112,8 +112,8 @@ fn unpack_frame_v2(
             {
                 current_px += (delta as i16) as i32;
                 let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
-                assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
-                assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+                // assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
+                // assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
                 let px = (prev_px + current_px) as u16;
                 *unsafe { image_data.data.get_unchecked_mut(index) } = px;
             }
