@@ -11,7 +11,7 @@ use core::time::Duration;
 
 use crate::common::cptv_field_type::FieldType;
 use crate::common::{HEIGHT, WIDTH};
-use byteorder::{ByteOrder, LittleEndian};
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use core::fmt::Debug;
 use core::ops::{Index, IndexMut};
 use log::warn;
@@ -70,20 +70,13 @@ impl<'a> Iterator for BitUnpacker<'a> {
         Some(out)
     }
 }
-fn u8_slice_as_u16_slice(p: &[u8]) -> &[u16] {
-    assert_eq!(
-        (p.len() / 2) * 2,
-        p.len(),
-        "slice must be evenly divisible by 2"
-    );
-    unsafe { core::slice::from_raw_parts((p as *const [u8]) as *const u16, p.len() / 2) }
-}
 
 fn unpack_frame_v2(
     prev_frame: &CptvFrame,
     data: &[u8],
     bit_width: u8,
     snake_sequence: &[usize],
+    is_tc2: bool
 ) -> FrameData {
     let initial_px = LittleEndian::read_i32(&data[0..4]);
     let num_remaining_px = (WIDTH * HEIGHT) - 1;
@@ -96,7 +89,36 @@ fn unpack_frame_v2(
     assert!(prev_px + current_px >= 0);
     let mut image_data = FrameData::new();
     image_data[0][0] = (prev_px + current_px) as u16;
-    if bit_width == 8 {
+    if bit_width == 16 {
+        assert_eq!(frame_size % 2, 0, "Frame size should be multiple of 2");
+        if is_tc2 {
+            for (&index, delta) in snake_sequence
+                .iter()
+                .zip(i.chunks(2).map(|chunk| LittleEndian::read_u16(&chunk)).take(num_remaining_px))
+            {
+                current_px += (delta as i16) as i32;
+                let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
+
+                assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
+                assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+                let px = (prev_px + current_px) as u16;
+                *unsafe { image_data.data.get_unchecked_mut(index) } = px;
+            }
+        } else {
+            // Turns out python cptv writes out as big-endian, despite the spec specifying little-endian.
+            for (&index, delta) in snake_sequence
+                .iter()
+                .zip(i.chunks(2).map(|chunk| BigEndian::read_u16(&chunk)).take(num_remaining_px))
+            {
+                current_px += (delta as i16) as i32;
+                let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
+                assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
+                assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+                let px = (prev_px + current_px) as u16;
+                *unsafe { image_data.data.get_unchecked_mut(index) } = px;
+            }
+        }
+    } else if bit_width == 8 {
         for (&index, delta) in snake_sequence.iter().zip(i.iter().take(num_remaining_px)) {
             current_px += (*delta as i8) as i32;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
@@ -166,6 +188,7 @@ impl CptvFrame {
         data: &'a [u8],
         prev_frame: &Option<CptvFrame>,
         sequence: &[usize],
+        is_tc2: bool
     ) -> nom::IResult<&'a [u8], CptvFrame, (&'a [u8], nom::error::ErrorKind)> {
         let (i, val) = take(1usize)(data)?;
         let (_, _) = char('F')(val)?;
@@ -234,7 +257,7 @@ impl CptvFrame {
                 &empty_frame
             }
         };
-        let image_data = unpack_frame_v2(prev_frame, data, bit_width, sequence);
+        let image_data = unpack_frame_v2(prev_frame, data, bit_width, sequence, is_tc2);
         Ok((
             i,
             CptvFrame {
