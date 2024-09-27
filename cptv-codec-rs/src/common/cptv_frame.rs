@@ -85,43 +85,30 @@ fn unpack_frame_v2(
     let mut current_px = initial_px;
     // Seed the initial pixel value
     let prev_px = prev_frame.image_data[0][0] as i32;
-    assert!(prev_px + current_px <= u16::MAX as i32);
-    assert!(prev_px + current_px >= 0);
+    debug_assert!(prev_px + current_px <= u16::MAX as i32);
+    debug_assert!(prev_px + current_px >= 0);
     let mut image_data = FrameData::new();
     image_data[0][0] = (prev_px + current_px) as u16;
     if bit_width == 16 {
-        assert_eq!(frame_size % 2, 0, "Frame size should be multiple of 2");
-        if is_tc2 {
-            for (&index, delta) in snake_sequence
-                .iter()
-                .zip(i.chunks(2).map(|chunk| LittleEndian::read_u16(&chunk)).take(num_remaining_px))
-            {
-                current_px += (delta as i16) as i32;
-                let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
-
-                // assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
-                // assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
-                let px = (prev_px + current_px) as u16;
-                *unsafe { image_data.data.get_unchecked_mut(index) } = px;
-            }
-        } else {
-            // Turns out python cptv writes out as big-endian, despite the spec specifying little-endian.
-            for (&index, delta) in snake_sequence
-                .iter()
-                .zip(i.chunks(2).map(|chunk| BigEndian::read_u16(&chunk)).take(num_remaining_px))
-            {
-                current_px += (delta as i16) as i32;
-                let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
-                // assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
-                // assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
-                let px = (prev_px + current_px) as u16;
-                *unsafe { image_data.data.get_unchecked_mut(index) } = px;
-            }
+        debug_assert_eq!(frame_size % 2, 0, "Frame size should be multiple of 2");
+        let unpack_u16 = if is_tc2 { |chunk| LittleEndian::read_u16(chunk) } else { |chunk| BigEndian::read_u16(chunk) };
+        for (&index, delta) in snake_sequence
+            .iter()
+            .zip(i.chunks(2).map(unpack_u16).take(num_remaining_px))
+        {
+            current_px += (delta as i16) as i32;
+            let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
+            debug_assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
+            debug_assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+            let px = (prev_px + current_px) as u16;
+            *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
     } else if bit_width == 8 {
         for (&index, delta) in snake_sequence.iter().zip(i.iter().take(num_remaining_px)) {
             current_px += (*delta as i8) as i32;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
+            debug_assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
+            debug_assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
             let px = (prev_px + current_px) as u16;
             *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
@@ -132,6 +119,8 @@ fn unpack_frame_v2(
         {
             current_px += delta;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
+            debug_assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
+            debug_assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
             let px = (prev_px + current_px) as u16;
             *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
