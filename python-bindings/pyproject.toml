@@ -8,7 +8,7 @@ features = ["pyo3/extension-module"]
 
 [project]
 name = "python-cptv"
-version = "0.0.4"
+version = "0.0.6"
 authors = [
   { name="Jon Hardie", email="Jon@cacophony.org.nz" },
   { name = "Giampaolo Feraro", email = "Giampaolo@Cacophony.org.nz"}
