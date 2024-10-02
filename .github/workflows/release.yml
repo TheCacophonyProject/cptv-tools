@@ -1,0 +1,53 @@
+name: Classifier Release
+run-name: Build classifier
+on: [push]
+jobs:
+  pypi-release:
+    name: Build and Release to PYPI 📦
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/python-cptv/
+      
+    if: startsWith(github.ref, 'refs/tags/v')
+    defaults:
+      run:
+        working-directory: ./python-bindings
+
+    permissions:
+      id-token: write
+    
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v4
+    - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        architecture: 'x64'
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: 1.77.1
+        override: true
+
+    - name: Display Rust and Cargo version
+      run: |
+        rustc --version
+        cargo --version
+
+    - name: Build release
+      run: |
+        cargo build --release
+
+    - name: Install pypa/build
+      run: >-
+        python3 -m
+        pip install
+        build maturin
+        --user
+    - name: Build a binary wheel and a source tarball
+      run: maturin publish
