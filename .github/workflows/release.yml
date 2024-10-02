@@ -29,10 +29,12 @@ jobs:
         rustc --version
         cargo --version
 
+    - run: cd python-bindings
+
     - name: Build release
       run: |
         cargo build --release
-        
+
     - name: Install pypa/build
       run: >-
         python3 -m
