@@ -32,7 +32,7 @@ jobs:
     - name: Build release
       run: |
         cargo build --release
-        mv ../target/release/libcptv_rs_python_bindings.so ./examples/cptv_rs_python_bindings.so
+        
     - name: Install pypa/build
       run: >-
         python3 -m
