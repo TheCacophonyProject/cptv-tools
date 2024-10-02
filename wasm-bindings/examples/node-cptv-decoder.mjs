@@ -1,4 +1,4 @@
-import {CptvDecoderContext} from "../pkg/wasm_bindings.js";
+import loadWasm, {CptvDecoderContext} from "../pkg/cptv_decoder.js";
 import fs from "fs";
 
 const FakeReader = function (bytes, maxChunkSize = 0) {
@@ -44,17 +44,20 @@ const FakeReader = function (bytes, maxChunkSize = 0) {
 };
 
 (async function main() {
-    const buffer = fs.readFileSync("../../cptv-codec-rs/tests/fixtures/748923-20201221.cptv");
+    await loadWasm(fs.readFileSync("../pkg/cptv_decoder_bg.wasm"));
+    const buffer = fs.readFileSync("../../cptv-codec-rs/tests/fixtures/20240917-1921337.cptv");
     const reader = new FakeReader(buffer, 100000);
     const start = performance.now();
     // TODO: Handle stream cancellation
     const decoderContext = CptvDecoderContext.newWithReadableStream(reader);
-    const _header = await decoderContext.getHeader();
+    const header = await decoderContext.getHeader();
     let frame;
     let num = 0;
-    while (frame = await decoderContext.nextFrameOwned() && frame !== null) {
+    while ((frame = await decoderContext.nextFrameOwned())) {
+        console.log(frame);
         num++;
     }
+    console.log(header);
     console.log(performance.now() - start);
     console.log(num);
     // TODO: Should header be filled with minValue, maxValue, totalFrames if it doesn't have those fields?

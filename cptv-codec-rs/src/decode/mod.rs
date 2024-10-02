@@ -9,6 +9,7 @@ use std::path::Path;
 pub use crate::common::cptv_frame::CptvFrame;
 pub use crate::common::cptv_header::CptvHeader;
 use crate::common::{HEIGHT, WIDTH};
+use crate::common::cptv_header::CptvString;
 
 struct DoubleBuffer {
     buffer_a: Vec<u8>,
@@ -169,15 +170,16 @@ impl<R: Read> CptvDecoder<R> {
     pub fn next_frame(&mut self) -> io::Result<&CptvFrame> {
         let header = self.get_header();
         if !header.is_ok() {
-            return Err(header.err().unwrap());
+            Err(header.err().unwrap())
         } else {
             // Get each frame.  The decoder will need to hold onto the previous frame in order
             // to decode the next.
             let mut buffer = [0u8; 1024]; // Read 1024 bytes at a time until we can decode the frame.
             let cptv_frame: CptvFrame;
+            let is_tc2 = header.expect("should have header").firmware_version.unwrap_or(CptvString::new()).as_string().contains("/");
             loop {
                 let initial_len = self.buffer.len();
-                match CptvFrame::from_bytes(&self.buffer, &self.prev_frame, &self.sequence) {
+                match CptvFrame::from_bytes(&self.buffer, &self.prev_frame, &self.sequence, is_tc2) {
                     Ok((remaining, frame)) => {
                         cptv_frame = frame;
                         self.prev_frame = Some(cptv_frame);
@@ -254,7 +256,7 @@ impl<R: Read> CptvDecoder<R> {
                     self.buffer.extend_from_slice(&buffer[0..bytes_read]);
                     Ok(())
                 } else {
-                    return Err(Error::new(ErrorKind::Other, "Reached end of input"));
+                    Err(Error::new(ErrorKind::Other, "Reached end of input"))
                 }
             }
             Err(e) => {
@@ -263,7 +265,7 @@ impl<R: Read> CptvDecoder<R> {
                         // Let the loop continue and retry
                         Ok(())
                     }
-                    _ => return Err(e),
+                    _ => Err(e),
                 }
             }
         }

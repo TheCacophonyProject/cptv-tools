@@ -1,5 +1,5 @@
 [package]
-name = "wasm-bindings"
+name = "cptv-decoder"
 version = "0.1.0"
 edition = "2021"
 

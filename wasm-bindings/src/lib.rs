@@ -39,7 +39,7 @@ impl WebReader {
                         return Ok(bytes_read as usize);
                     }
                 }
-                return Ok(0);
+                Ok(0)
             }
             Err(_e) => Err(io::Error::new(ErrorKind::UnexpectedEof, "Stream error")),
         }
