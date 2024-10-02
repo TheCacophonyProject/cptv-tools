@@ -6,7 +6,9 @@ jobs:
     name: Build distribution 📦
     runs-on: ubuntu-latest
     # if: startsWith(github.ref, 'refs/tags/v')
-
+    defaults:
+      run:
+        working-directory: ./python-bindings
     steps:
     - name: Check out repository code
       uses: actions/checkout@v4
@@ -28,8 +30,6 @@ jobs:
       run: |
         rustc --version
         cargo --version
-
-    - run: cd python-bindings
 
     - name: Build release
       run: |
