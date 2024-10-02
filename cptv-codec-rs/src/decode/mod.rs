@@ -256,7 +256,7 @@ impl<R: Read> CptvDecoder<R> {
                     self.buffer.extend_from_slice(&buffer[0..bytes_read]);
                     Ok(())
                 } else {
-                    return Err(Error::new(ErrorKind::Other, "Reached end of input"));
+                    Err(Error::new(ErrorKind::Other, "Reached end of input"))
                 }
             }
             Err(e) => {
@@ -265,7 +265,7 @@ impl<R: Read> CptvDecoder<R> {
                         // Let the loop continue and retry
                         Ok(())
                     }
-                    _ => return Err(e),
+                    _ => Err(e),
                 }
             }
         }

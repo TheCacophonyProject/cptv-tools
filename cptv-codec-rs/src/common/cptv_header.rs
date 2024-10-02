@@ -1,7 +1,7 @@
 use crate::common::cptv_field_type::FieldType;
 use crate::common::{HEIGHT, WIDTH};
 use alloc::string::String;
-use core::fmt::{Debug, Formatter};
+use core::fmt::{Debug, Display, Formatter};
 use log::warn;
 use nom::bytes::streaming::{tag, take};
 use nom::character::streaming::char;
@@ -19,6 +19,12 @@ pub struct CptvString {
 impl Debug for CptvString {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "\"{}\"", self.inner)
+    }
+}
+
+impl Display for CptvString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        write!(f, "\"{:?}\"", self.inner)
     }
 }
 
