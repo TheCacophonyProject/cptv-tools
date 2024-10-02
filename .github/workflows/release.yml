@@ -9,13 +9,14 @@ jobs:
       name: release
       url: https://pypi.org/project/python-cptv/
       
-    # if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     defaults:
       run:
         working-directory: ./python-bindings
 
     permissions:
       id-token: write
+    
     steps:
     - name: Check out repository code
       uses: actions/checkout@v4
