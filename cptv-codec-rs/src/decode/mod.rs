@@ -8,8 +8,8 @@ use std::path::Path;
 
 pub use crate::common::cptv_frame::CptvFrame;
 pub use crate::common::cptv_header::CptvHeader;
-use crate::common::{HEIGHT, WIDTH};
 use crate::common::cptv_header::CptvString;
+use crate::common::{HEIGHT, WIDTH};
 
 struct DoubleBuffer {
     buffer_a: Vec<u8>,
@@ -89,6 +89,7 @@ pub struct CptvDecoder<R: Read> {
     header: Option<CptvHeader>,
     prev_frame: Option<CptvFrame>,
     sequence: Vec<usize>,
+    has_header: bool,
 }
 
 impl<R: Read> Iterator for CptvDecoder<R> {
@@ -107,23 +108,34 @@ impl<R: Read> CptvDecoder<R> {
     /// Construct a `CptvDecoder` reading from a given file path.
     pub fn from_path(path: &Path) -> io::Result<CptvDecoder<File>> {
         let f = File::open(path)?;
-        Ok(CptvDecoder::<File>::new_with_read(f))
+        Ok(CptvDecoder::<File>::new_with_read(f, true))
+    }
+
+    pub fn from_path_optional_header(
+        path: &Path,
+        has_header: bool,
+    ) -> io::Result<CptvDecoder<File>> {
+        let f = File::open(path)?;
+        Ok(CptvDecoder::<File>::new_with_read(f, has_header))
     }
 
     /// Construct a `CptvDecoder` reading from an owned Vec
     pub fn from_bytes(file_bytes: Vec<u8>) -> io::Result<CptvDecoder<Cursor<Vec<u8>>>> {
-        Ok(CptvDecoder::new_with_read(Cursor::new(file_bytes)))
+        Ok(CptvDecoder::new_with_read(Cursor::new(file_bytes), true))
     }
 
     /// Construct a `CptvDecoder` with any type that implements the `Read` trait.
     pub fn from(reader: R) -> io::Result<CptvDecoder<R>> {
-        Ok(CptvDecoder::new_with_read(reader))
+        Ok(CptvDecoder::new_with_read(reader, true))
     }
 
     /// If the file header has not yet been decoded, decodes, stores and returns a copy of it.
     /// If it *has* already been decoded, returns a copy of the stored header, so calling this
     /// more than once is safe.
     pub fn get_header(&mut self) -> io::Result<CptvHeader> {
+        if !self.has_header {
+            return Err(Error::new(ErrorKind::Other, "CPTV file has no header"));
+        }
         if self.header.is_none() {
             let mut buffer = [0u8; 1024]; // Read 1024 bytes at a time until we can decode the header.
             let cptv_header: CptvHeader;
@@ -168,56 +180,61 @@ impl<R: Read> CptvDecoder<R> {
     /// Decodes the next frame if any, and returns a reference to the latest decoded frame.
     /// If the file header has not yet been decoded, also decodes and stores the Cptv2Header.
     pub fn next_frame(&mut self) -> io::Result<&CptvFrame> {
-        let header = self.get_header();
-        if !header.is_ok() {
-            Err(header.err().unwrap())
-        } else {
-            // Get each frame.  The decoder will need to hold onto the previous frame in order
-            // to decode the next.
-            let mut buffer = [0u8; 1024]; // Read 1024 bytes at a time until we can decode the frame.
-            let cptv_frame: CptvFrame;
-            let is_tc2 = header.expect("should have header").firmware_version.unwrap_or(CptvString::new()).as_string().contains("/");
-            loop {
-                let initial_len = self.buffer.len();
-                match CptvFrame::from_bytes(&self.buffer, &self.prev_frame, &self.sequence, is_tc2) {
-                    Ok((remaining, frame)) => {
-                        cptv_frame = frame;
-                        self.prev_frame = Some(cptv_frame);
-                        let used = initial_len - remaining.len();
-                        self.buffer.consume(used);
-                        break;
-                    }
-                    Err(e) => {
-                        match e {
-                            nom::Err::Incomplete(need_more_bytes) => match need_more_bytes {
-                                Needed::Size(size) => {
-                                    while self.buffer.len() < initial_len + size.get() {
-                                        match self.read_into_buffer(&mut buffer) {
-                                            Ok(_) => (),
-                                            Err(e) => return Err(e),
-                                        }
-                                        if self.buffer.len() == initial_len + size.get() {
-                                            continue;
-                                        }
-                                    }
-                                }
-                                Needed::Unknown => match self.read_into_buffer(&mut buffer) {
+        let mut is_tc2 = true;
+        if self.has_header {
+            let header = self.get_header();
+            if !header.is_ok() {
+                return Err(header.err().unwrap());
+            }
+            is_tc2 = header
+                .expect("should have header")
+                .firmware_version
+                .unwrap_or(CptvString::new())
+                .as_string()
+                .contains("/");
+        }
+        // Get each frame.  The decoder will need to hold onto the previous frame in order
+        // to decode the next.
+        let mut buffer = [0u8; 1024]; // Read 1024 bytes at a time until we can decode the frame.
+        let cptv_frame: CptvFrame;
+        loop {
+            let initial_len = self.buffer.len();
+            match CptvFrame::from_bytes(&self.buffer, &self.prev_frame, &self.sequence, is_tc2) {
+                Ok((remaining, frame)) => {
+                    cptv_frame = frame;
+                    self.prev_frame = Some(cptv_frame);
+                    let used = initial_len - remaining.len();
+                    self.buffer.consume(used);
+                    break;
+                }
+                Err(e) => match e {
+                    nom::Err::Incomplete(need_more_bytes) => match need_more_bytes {
+                        Needed::Size(size) => {
+                            while self.buffer.len() < initial_len + size.get() {
+                                match self.read_into_buffer(&mut buffer) {
                                     Ok(_) => (),
                                     Err(e) => return Err(e),
-                                },
-                            },
-                            nom::Err::Failure(_e) | nom::Err::Error(_e) => {
-                                return Err(Error::new(
-                                    ErrorKind::Other,
-                                    "Unexpected input, CPTV file may be corrupt?",
-                                ));
+                                }
+                                if self.buffer.len() == initial_len + size.get() {
+                                    continue;
+                                }
                             }
                         }
+                        Needed::Unknown => match self.read_into_buffer(&mut buffer) {
+                            Ok(_) => (),
+                            Err(e) => return Err(e),
+                        },
                     },
-                }
+                    nom::Err::Failure(_e) | nom::Err::Error(_e) => {
+                        return Err(Error::new(
+                            ErrorKind::Other,
+                            "Unexpected input, CPTV file may be corrupt?",
+                        ));
+                    }
+                },
             }
-            Ok(self.prev_frame.as_ref().unwrap())
         }
+        Ok(self.prev_frame.as_ref().unwrap())
     }
 
     /// Decodes the next frame if any, and returns an owned clone of it.
@@ -226,7 +243,7 @@ impl<R: Read> CptvDecoder<R> {
         self.next_frame().map(|r| r.clone())
     }
 
-    pub fn new_with_read(read: R) -> CptvDecoder<R> {
+    pub fn new_with_read(read: R, has_header: bool) -> CptvDecoder<R> {
         //let reader = Rc::new(Box::new(read));
         CptvDecoder {
             reader: MultiGzDecoder::new(BufReader::new(read)),
@@ -242,6 +259,7 @@ impl<R: Read> CptvDecoder<R> {
                 .map(|(index, i)| ((index / WIDTH) * WIDTH) + i)
                 .skip(1)
                 .collect(),
+            has_header: has_header,
         }
     }
 

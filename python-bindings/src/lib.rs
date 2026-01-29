@@ -78,6 +78,14 @@ struct CptvFrame {
 
 #[pymethods]
 impl CptvReader {
+    #[staticmethod]
+    pub fn new_optional_header(path: String, has_header: bool) -> CptvReader {
+        CptvReader {
+            inner: CptvDecoder::<File>::from_path_optional_header(Path::new(&path), has_header)
+                .unwrap(),
+        }
+    }
+
     #[new]
     pub fn new(path: String) -> CptvReader {
         CptvReader {
@@ -118,8 +126,10 @@ impl CptvReader {
 
     pub fn next_frame<'py>(&mut self, py: Python<'py>) -> Option<CptvFrame> {
         if let Ok(frame_ref) = self.inner.next_frame() {
-            let chunk =
-                Array::from_shape_vec((120, 160), frame_ref.image_data.data().to_vec()).unwrap();
+            let chunk: numpy::ndarray::ArrayBase<
+                numpy::ndarray::OwnedRepr<u16>,
+                numpy::ndarray::Dim<[usize; 2]>,
+            > = Array::from_shape_vec((120, 160), frame_ref.image_data.data().to_vec()).unwrap();
             Some(CptvFrame {
                 time_on: frame_ref.time_on,
                 last_ffc_time: frame_ref.last_ffc_time,
