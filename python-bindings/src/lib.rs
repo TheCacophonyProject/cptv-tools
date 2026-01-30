@@ -2,14 +2,18 @@ use std::fs::File;
 use std::path::Path;
 
 use numpy::ndarray::Array;
-use numpy::{IntoPyArray, PyArray2};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyReadonlyArrayDyn};
 use pyo3::prelude::*;
 
-use codec::decode::CptvDecoder;
+use codec::decode::{CptvDecoder, CptvStreamDecoder};
 
 #[pyclass]
 struct CptvReader {
     inner: CptvDecoder<File>,
+}
+#[pyclass]
+struct CptvStreamReader {
+    inner: CptvStreamDecoder,
 }
 
 #[pyclass(frozen)]
@@ -77,15 +81,46 @@ struct CptvFrame {
 }
 
 #[pymethods]
-impl CptvReader {
-    #[staticmethod]
-    pub fn new_optional_header(path: String, has_header: bool) -> CptvReader {
-        CptvReader {
-            inner: CptvDecoder::<File>::from_path_optional_header(Path::new(&path), has_header)
-                .unwrap(),
+impl CptvStreamReader {
+    #[new]
+    pub fn new() -> CptvStreamReader {
+        CptvStreamReader {
+            inner: CptvStreamDecoder::new(),
         }
     }
 
+    pub fn next_frame_from_data<'py>(
+        &mut self,
+        py: Python<'py>,
+        data: &Bound<'py, PyArray1<u8>>,
+    ) -> Option<(CptvFrame, usize)> {
+        let slice: &[u8] = unsafe { data.as_slice().unwrap() };
+
+        if let Ok((frame_ref, data_used)) = self.inner.next_frame_from_data(slice) {
+            let chunk: numpy::ndarray::ArrayBase<
+                numpy::ndarray::OwnedRepr<u16>,
+                numpy::ndarray::Dim<[usize; 2]>,
+            > = Array::from_shape_vec((120, 160), frame_ref.image_data.data().to_vec()).unwrap();
+
+            Some((
+                CptvFrame {
+                    time_on: frame_ref.time_on,
+                    last_ffc_time: frame_ref.last_ffc_time,
+                    temp_c: frame_ref.frame_temp_c,
+                    last_ffc_temp_c: frame_ref.last_ffc_temp_c,
+                    background_frame: frame_ref.is_background_frame,
+                    pix: Bound::unbind(chunk.into_pyarray_bound(py)),
+                },
+                data_used,
+            ))
+        } else {
+            None
+        }
+    }
+}
+
+#[pymethods]
+impl CptvReader {
     #[new]
     pub fn new(path: String) -> CptvReader {
         CptvReader {
@@ -148,5 +183,6 @@ impl CptvReader {
 #[pymodule]
 fn cptv_rs_python_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<CptvReader>()?;
+    m.add_class::<CptvStreamReader>()?;
     Ok(())
 }

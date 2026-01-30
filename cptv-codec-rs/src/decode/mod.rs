@@ -289,3 +289,58 @@ impl<R: Read> CptvDecoder<R> {
         }
     }
 }
+
+#[cfg(feature = "std")]
+pub struct CptvStreamDecoder {
+    prev_frame: Option<CptvFrame>,
+    sequence: Vec<usize>,
+}
+
+#[cfg(feature = "std")]
+impl CptvStreamDecoder {
+    pub fn new() -> CptvStreamDecoder {
+        CptvStreamDecoder {
+            prev_frame: None,
+            sequence: (0..WIDTH)
+                .chain((0..WIDTH).rev())
+                .cycle()
+                .take(WIDTH * HEIGHT)
+                .enumerate()
+                .map(|(index, i)| ((index / WIDTH) * WIDTH) + i)
+                .skip(1)
+                .collect(),
+        }
+    }
+
+    /// Decodes the next frame if any, and returns a reference to the latest decoded frame.
+    /// If the file header has not yet been decoded, also decodes and stores the Cptv2Header.
+    pub fn next_frame_from_data(&mut self, data: &[u8]) -> io::Result<(&CptvFrame, usize)> {
+        let is_tc2 = true;
+        // Get each frame.  The decoder will need to hold onto the previous frame in order
+        // to decode the next.
+        let cptv_frame: CptvFrame;
+        let used;
+        let initial_len = data.len();
+        match CptvFrame::from_bytes(data, &self.prev_frame, &self.sequence, is_tc2) {
+            Ok((remaining, frame)) => {
+                println!(
+                    "remaining da  ta is {:?} total data is {}",
+                    remaining.len(),
+                    data.len()
+                );
+
+                cptv_frame = frame;
+                self.prev_frame = Some(cptv_frame);
+                used = initial_len - remaining.len();
+            }
+
+            Err(e) => {
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    "Unexpected input, CPTV file may be corrupt?",
+                ));
+            }
+        }
+        Ok((self.prev_frame.as_ref().unwrap(), used))
+    }
+}
