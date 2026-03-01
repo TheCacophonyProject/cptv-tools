@@ -323,12 +323,6 @@ impl CptvStreamDecoder {
         let initial_len = data.len();
         match CptvFrame::from_bytes(data, &self.prev_frame, &self.sequence, is_tc2) {
             Ok((remaining, frame)) => {
-                println!(
-                    "remaining da  ta is {:?} total data is {}",
-                    remaining.len(),
-                    data.len()
-                );
-
                 cptv_frame = frame;
                 self.prev_frame = Some(cptv_frame);
                 used = initial_len - remaining.len();
