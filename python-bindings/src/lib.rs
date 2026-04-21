@@ -93,10 +93,11 @@ impl CptvStreamReader {
         &mut self,
         py: Python<'py>,
         data: &Bound<'py, PyArray1<u8>>,
+        is_tc2: bool,
     ) -> Option<(CptvFrame, usize)> {
         let slice: &[u8] = unsafe { data.as_slice().unwrap() };
 
-        if let Ok((frame_ref, data_used)) = self.inner.next_frame_from_data(slice) {
+        if let Ok((frame_ref, data_used)) = self.inner.next_frame_from_data(slice,is_tc2) {
             let chunk: numpy::ndarray::ArrayBase<
                 numpy::ndarray::OwnedRepr<u16>,
                 numpy::ndarray::Dim<[usize; 2]>,

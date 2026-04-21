@@ -314,8 +314,7 @@ impl CptvStreamDecoder {
 
     /// Decodes the next frame if any, and returns a reference to the latest decoded frame.
     /// If the file header has not yet been decoded, also decodes and stores the Cptv2Header.
-    pub fn next_frame_from_data(&mut self, data: &[u8]) -> io::Result<(&CptvFrame, usize)> {
-        let is_tc2 = true;
+    pub fn next_frame_from_data(&mut self, data: &[u8], is_tc2:bool) -> io::Result<(&CptvFrame, usize)> {
         // Get each frame.  The decoder will need to hold onto the previous frame in order
         // to decode the next.
         let cptv_frame: CptvFrame;
