@@ -76,7 +76,7 @@ fn unpack_frame_v2(
     data: &[u8],
     bit_width: u8,
     snake_sequence: &[usize],
-    is_tc2: bool
+    is_tc2: bool,
 ) -> FrameData {
     let initial_px = LittleEndian::read_i32(&data[0..4]);
     let num_remaining_px = (WIDTH * HEIGHT) - 1;
@@ -91,15 +91,29 @@ fn unpack_frame_v2(
     image_data[0][0] = (prev_px + current_px) as u16;
     if bit_width == 16 {
         debug_assert_eq!(frame_size % 2, 0, "Frame size should be multiple of 2");
-        let unpack_u16 = if is_tc2 { |chunk| LittleEndian::read_u16(chunk) } else { |chunk| BigEndian::read_u16(chunk) };
+        let unpack_u16 = if is_tc2 {
+            |chunk| LittleEndian::read_u16(chunk)
+        } else {
+            |chunk| BigEndian::read_u16(chunk)
+        };
         for (&index, delta) in snake_sequence
             .iter()
             .zip(i.chunks(2).map(unpack_u16).take(num_remaining_px))
         {
             current_px += (delta as i16) as i32;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
-            debug_assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
-            debug_assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+            debug_assert!(
+                prev_px + current_px <= u16::MAX as i32,
+                "prev_px {}, current_px {}",
+                prev_px,
+                current_px
+            );
+            debug_assert!(
+                prev_px + current_px >= 0,
+                "prev_px {}, current_px {}",
+                prev_px,
+                current_px
+            );
             let px = (prev_px + current_px) as u16;
             *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
@@ -107,8 +121,18 @@ fn unpack_frame_v2(
         for (&index, delta) in snake_sequence.iter().zip(i.iter().take(num_remaining_px)) {
             current_px += (*delta as i8) as i32;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
-            debug_assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
-            debug_assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+            debug_assert!(
+                prev_px + current_px <= u16::MAX as i32,
+                "prev_px {}, current_px {}",
+                prev_px,
+                current_px
+            );
+            debug_assert!(
+                prev_px + current_px >= 0,
+                "prev_px {}, current_px {}",
+                prev_px,
+                current_px
+            );
             let px = (prev_px + current_px) as u16;
             *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
@@ -119,8 +143,18 @@ fn unpack_frame_v2(
         {
             current_px += delta;
             let prev_px = unsafe { *prev_frame.image_data.data.get_unchecked(index) } as i32;
-            debug_assert!(prev_px + current_px <= u16::MAX as i32, "prev_px {}, current_px {}", prev_px, current_px);
-            debug_assert!(prev_px + current_px >= 0, "prev_px {}, current_px {}", prev_px, current_px);
+            debug_assert!(
+                prev_px + current_px <= u16::MAX as i32,
+                "prev_px {}, current_px {}",
+                prev_px,
+                current_px
+            );
+            debug_assert!(
+                prev_px + current_px >= 0,
+                "prev_px {}, current_px {}",
+                prev_px,
+                current_px
+            );
             let px = (prev_px + current_px) as u16;
             *unsafe { image_data.data.get_unchecked_mut(index) } = px;
         }
@@ -177,7 +211,7 @@ impl CptvFrame {
         data: &'a [u8],
         prev_frame: &Option<CptvFrame>,
         sequence: &[usize],
-        is_tc2: bool
+        is_tc2: bool,
     ) -> nom::IResult<&'a [u8], CptvFrame, (&'a [u8], nom::error::ErrorKind)> {
         let (i, val) = take(1usize)(data)?;
         let (_, _) = char('F')(val)?;
